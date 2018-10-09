@@ -58,6 +58,7 @@ jobs:
     steps:
       - checkout
       - *attach_workspace
+      - *copy_vendor
       - run:
           name: Run PHP code quality tests
           command: phpcs --standard=ruleset.xml --extensions=php -n -s .
