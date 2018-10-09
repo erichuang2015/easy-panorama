@@ -82,7 +82,7 @@ jobs:
       - *install_subversion
       - run:
           name: Deploy new version to WordPress plugin directory
-          command: .circleci/deploy-plugin.sh
+          command: sh .circleci/deploy-plugin.sh
 
 workflows:
   version: 2
