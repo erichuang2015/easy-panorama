@@ -46,12 +46,6 @@ jobs:
     <<: *container_config
     steps:
       - checkout
-      - run:
-          name: Install Composer
-          command: composer self-update && composer --version && composer global require squizlabs/php_codesniffer
-      - run:
-          name: Install Yarn
-          command: cd block && yarn install
 
   php_quality:
     <<: *container_config
@@ -59,6 +53,9 @@ jobs:
       - checkout
       - *attach_workspace
       - *copy_vendor
+      - run:
+          name: Install Composer
+          command: composer self-update && composer --version && composer global require squizlabs/php_codesniffer
       - run:
           name: Run PHP code quality tests
           command: phpcs --standard=ruleset.xml --extensions=php -n -s .
