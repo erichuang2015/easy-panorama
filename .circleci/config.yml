@@ -62,7 +62,7 @@ jobs:
       - *copy_vendor
       - run:
           name: Run PHP code quality tests
-          command: vendor/bin/phpcs --standard=ruleset.xml --extensions=php -n -s .
+          command: vendor/bin/phpcs --ignore=/vendor/ --standard=ruleset.xml --extensions=php -n -s .
 
   deploy_assets:
     <<: *container_config
