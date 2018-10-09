@@ -46,19 +46,20 @@ jobs:
     <<: *container_config
     steps:
       - checkout
+      - run:
+          name: Install dependencies
+          command: composer install -n -o
+      - persist_to_workspace:
+          root: .
+          paths:
+            - vendor
 
   php_quality:
     <<: *container_config
     steps:
       - checkout
       - *attach_workspace
-      - run:
-          name: Install Composer
-          command: composer self-update && composer --version && composer global require squizlabs/php_codesniffer
-      - persist_to_workspace:
-          root: .
-          paths:
-            - vendor
+      - *copy_vendor
       - run:
           name: Run PHP code quality tests
           command: vendor/bin/phpcs --standard=ruleset.xml --extensions=php -n -s .
@@ -88,11 +89,6 @@ workflows:
   build_test_deploy:
     jobs:
       - build
-      - deploy_assets:
-          filters:
-            branches:
-              only:
-                - master
       - php_quality:
           requires:
             - build
