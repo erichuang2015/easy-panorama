@@ -31,6 +31,11 @@ references:
     attach_workspace:
       at: *workspace_root
 
+  copy_vendor: &copy_vendor
+    run:
+      name: Copy vendor directory
+      command: cp -R /tmp/vendor .
+
   install_subversion: &install_subversion
     run:
       name: Install subversion
@@ -43,7 +48,7 @@ jobs:
       - checkout
       - run:
           name: Install Composer
-          command: composer self-update && composer --version
+          command: composer self-update && composer --version && composer global require squizlabs/php_codesniffer
       - run:
           name: Install Yarn
           command: bash .circleci/install-wp.sh
@@ -53,9 +58,6 @@ jobs:
     steps:
       - checkout
       - *attach_workspace
-      - run:
-          name: Install php_codesniffer
-          command: composer global require squizlabs/php_codesniffer
       - run:
           name: Run PHP code quality tests
           command: phpcs --standard=ruleset.xml --extensions=php -n -s .
