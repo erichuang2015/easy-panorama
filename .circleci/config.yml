@@ -55,6 +55,10 @@ jobs:
       - run:
           name: Install Composer
           command: composer self-update && composer --version && composer global require squizlabs/php_codesniffer
+      - persist_to_workspace:
+          root: .
+          paths:
+            - vendor
       - run:
           name: Run PHP code quality tests
           command: vendor/bin/phpcs --standard=ruleset.xml --extensions=php -n -s .
