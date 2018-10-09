@@ -31,58 +31,10 @@ references:
     attach_workspace:
       at: *workspace_root
 
-  copy_vendor: &copy_vendor
-    run:
-      name: Copy vendor directory
-      command: cp -R /tmp/vendor .
-
   install_subversion: &install_subversion
     run:
       name: Install subversion
       command: sudo apt-get install subversion
-
-  # Default configuration for all behat testing jobs
-  #
-  behat_job: &behat_job
-    <<: *container_config
-    docker:
-      - image: circleci/php:7.2
-      - image: circleci/mysql:5.7
-    steps:
-      - checkout
-      - run:
-          name: Add WordPress host to hosts file
-          command: echo "127.0.0.1 ${WP_HOST}" | sudo tee -a /etc/hosts
-      - *attach_workspace
-      - *copy_vendor
-      - run:
-          name: Install MySQL client
-          command: sudo apt-get install mysql-client
-      - run:
-          name: Install MySQL PHP extension
-          command: sudo docker-php-ext-install mysqli
-      - run:
-          name: Setup WordPress
-          command: .circleci/setup-$WP_TYPE.sh
-      - run:
-          name: Start PHP server
-          command: sudo php -S $WP_HOST:80 -t $WP_CORE_DIR
-          background: True
-      - run:
-          name: Run Behat tests
-          command: vendor/bin/behat --config .circleci/behat.yml --format progress --tags=$WP_TYPE
-
-  # Default configuration for all phpunit testing jobs
-  #
-  phpunit_job: &phpunit_job
-    <<: *container_config
-    steps:
-      - checkout
-      - *attach_workspace
-      - *copy_vendor
-      - run:
-          name: Run PHP unit tests
-          command: vendor/bin/phpunit
 
 jobs:
   build:
@@ -90,73 +42,20 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install dependencies
+          name: Install Composer
           command: composer self-update && composer --version
       - run:
-          name: Install WordPress
+          name: Install Yarn
           command: bash .circleci/install-wp.sh
-      - persist_to_workspace:
-          root: *workspace_root
-          paths:
-            - wordpress
 
-  code_quality:
+  php_quality:
     <<: *container_config
     steps:
       - checkout
       - *attach_workspace
-      - *copy_vendor
       - run:
-          name: Run code quality tests
-          command: vendor/bin/grumphp run --testsuite=code_quality
-
-  test_php72:
-    <<: *phpunit_job
-    docker:
-      - image: circleci/php:7.2
-
-  test_php71:
-    <<: *phpunit_job
-    docker:
-      - image: circleci/php:7.1
-
-  test_php70:
-    <<: *phpunit_job
-    docker:
-      - image: circleci/php:7.0
-
-  test_php56:
-    <<: *phpunit_job
-    docker:
-      - image: circleci/php:5.6
-
-  test_php55:
-    <<: *phpunit_job
-    docker:
-      - image: vandries/phpenv:5.5
-
-  test_php54:
-    <<: *phpunit_job
-    docker:
-      - image: vandries/phpenv:5.4
-
-  acceptance_singlesite:
-    <<: *behat_job
-    environment:
-      - WP_CORE_DIR: *WP_CORE_DIR
-      - WP_HOST: *WP_HOST
-      - WP_ORG_PLUGIN_NAME: *WP_ORG_PLUGIN_NAME
-      - WP_ORG_USERNAME: *WP_ORG_USERNAME
-      - WP_TYPE: singlesite
-
-  acceptance_multisite:
-    <<: *behat_job
-    environment:
-      - WP_CORE_DIR: *WP_CORE_DIR
-      - WP_HOST: *WP_HOST
-      - WP_ORG_PLUGIN_NAME: *WP_ORG_PLUGIN_NAME
-      - WP_ORG_USERNAME: *WP_ORG_USERNAME
-      - WP_TYPE: multisite
+          name: Run PHP code quality tests
+          command: composer global require squizlabs/php_codesniffer
 
   deploy_assets:
     <<: *container_config
@@ -188,48 +87,13 @@ workflows:
             branches:
               only:
                 - master
-      - code_quality:
+      - php_quality:
           requires:
             - build
-      - test_php72:
-          requires:
-            - code_quality
-      - test_php71:
-          requires:
-            - code_quality
-      - test_php70:
-          requires:
-            - code_quality
-      - test_php56:
-          requires:
-            - code_quality
-      - test_php55:
-          requires:
-            - code_quality
-      - test_php54:
-          requires:
-            - code_quality
-      - acceptance_singlesite:
-          requires:
-            - test_php72
-            - test_php71
-            - test_php70
-            - test_php56
-            - test_php55
-            - test_php54
-      - acceptance_multisite:
-          requires:
-            - test_php72
-            - test_php71
-            - test_php70
-            - test_php56
-            - test_php55
-            - test_php54
       - deploy_plugin:
           filters:
             branches:
               only:
                 - master
           requires:
-            - acceptance_singlesite
-            - acceptance_multisite
+            - php_quality
